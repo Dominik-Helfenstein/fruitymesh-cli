@@ -1,34 +1,23 @@
-use std::process::exit;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    action: String,
+    sub_action: String,
+}
 
 fn main() {
-    let args: Vec<_> = std::env::args().collect();
+    let args = Args::parse();
     println!("{:?}", args);
 
-    if args.len() < 2 {
-        println!("No action provided. Possible actions are: add");
-        exit(1);
+    match args.action.as_str() {
+        "new" => match args.sub_action.as_str() {
+            "module" => {
+                println!("Creating new module");
+            }
+            _ => {}
+        },
+        _ => {}
     }
-
-    let action: &str = match args[1].as_str() {
-        "add" => {
-            if args.len() < 3 {
-                println!("The following can be added: module");
-                exit(1);
-            }
-
-            match args[2].as_str() {
-                "module" => {}
-                _ => {
-                    println!("Action 'add {}' not found.", args[2]);
-                    exit(1);
-                }
-            }
-
-            args[1].as_str()
-        }
-        _ => {
-            println!("Action '{}' not found.", args[1]);
-            exit(1);
-        }
-    };
 }
