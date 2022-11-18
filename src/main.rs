@@ -1,19 +1,34 @@
-use clap::Parser;
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[arg(short, long)]
-    name: String,
-
-    #[arg(short, long, default_value_t = 1)]
-    count: u8,
-}
+use std::process::exit;
 
 fn main() {
-    let args = Args::parse();
+    let args: Vec<_> = std::env::args().collect();
+    println!("{:?}", args);
 
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name);
+    if args.len() < 2 {
+        println!("No action provided. Possible actions are: add");
+        exit(1);
     }
+
+    let action: &str = match args[1].as_str() {
+        "add" => {
+            if args.len() < 3 {
+                println!("The following can be added: module");
+                exit(1);
+            }
+
+            match args[2].as_str() {
+                "module" => {}
+                _ => {
+                    println!("Action 'add {}' not found.", args[2]);
+                    exit(1);
+                }
+            }
+
+            args[1].as_str()
+        }
+        _ => {
+            println!("Action '{}' not found.", args[1]);
+            exit(1);
+        }
+    };
 }
