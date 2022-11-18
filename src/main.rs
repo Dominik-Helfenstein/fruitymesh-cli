@@ -5,8 +5,12 @@ use std::str::FromStr;
 
 use clap::Parser;
 use dialoguer::console::Style;
-use dialoguer::Select;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use num::FromPrimitive;
+
+extern crate num;
+#[macro_use]
+extern crate num_derive;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -15,9 +19,9 @@ struct Args {
     sub_action: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromPrimitive, ToPrimitive)]
 enum ModuleType {
-    GLOBAL,
+    GLOBAL = 0,
     VENDOR,
 }
 
@@ -25,7 +29,7 @@ enum ModuleType {
 struct ModuleConfig {
     name: String,
     module_type: ModuleType,
-    template_path: std::path::PathBuf,
+    template_path: PathBuf,
 }
 
 fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
@@ -42,8 +46,11 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
         exit(1);
     }
 
-    let module_name: String = Input::new().with_prompt("Name").interact_text().unwrap(); // todo: replace unwrap with ? and place it inside a function that
-                                                                                         // returns a result
+    let module_name: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Name")
+        .interact_text()
+        .unwrap(); // todo: replace unwrap with ? and place it inside a function that
+                   // returns a result
 
     println!("Module name: {}", module_name);
 
@@ -52,13 +59,20 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
         .default(0)
         .item("global")
         .item("vendor")
-        .interact()?;
+        .interact_opt()?;
 
-    let module_type: ModuleType = match module_type_index {
-        0 => ModuleType::GLOBAL,
-        1 => ModuleType::VENDOR,
-        _ => ModuleType::GLOBAL,
-    };
+    // let el = match module_type_index.unwrap() {
+    //     Ok(i) => FromPrimitive::from_usize(Ok(i)),
+    //     Err(err) => println!("Error: {}", err),
+    // }
+
+    // let module_type: ModuleType = match module_type_index {
+    //     0 => ModuleType::GLOBAL,
+    //     1 => ModuleType::VENDOR,
+    //     _ => ModuleType::GLOBAL,
+    // };
+
+    let module_type = ModuleType::GLOBAL;
 
     println!("Module type: {:?}", module_type);
 
