@@ -1,12 +1,11 @@
+use core::fmt;
 use std::error::Error;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
 use clap::Parser;
-use dialoguer::console::Style;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
-use num::FromPrimitive;
 
 extern crate num;
 #[macro_use]
@@ -22,7 +21,32 @@ struct Args {
 #[derive(Debug, FromPrimitive, ToPrimitive)]
 enum ModuleType {
     GLOBAL = 0,
-    VENDOR,
+    VENDOR = 1,
+}
+
+impl ModuleType {
+    fn from_usize(value: usize) -> Self {
+        match value {
+            0 => Self::GLOBAL,
+            1 => Self::VENDOR,
+            _ => Self::GLOBAL,
+        }
+    }
+
+    fn get_template_path(&self) -> std::path::PathBuf {
+        match *self {
+            Self::GLOBAL => std::path::PathBuf::from_str("templates/global.h")
+                .expect("Path for global not found."),
+            Self::VENDOR => std::path::PathBuf::from_str("templates/vendor.h")
+                .expect("Path for vendor not found."),
+        }
+    }
+}
+
+impl fmt::Display for ModuleType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug)]
@@ -33,10 +57,7 @@ struct ModuleConfig {
 }
 
 fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
-    let theme = ColorfulTheme {
-        values_style: Style::new().yellow().dim(),
-        ..ColorfulTheme::default()
-    };
+    let theme = ColorfulTheme::default();
     println!("Welcome to the setup wizard");
 
     if !Confirm::with_theme(&theme)
@@ -46,40 +67,31 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
         exit(1);
     }
 
-    let module_name: String = Input::with_theme(&ColorfulTheme::default())
+    let module_name: String = Input::with_theme(&theme)
         .with_prompt("Name")
-        .interact_text()
-        .unwrap(); // todo: replace unwrap with ? and place it inside a function that
-                   // returns a result
+        .interact_text()?;
 
     println!("Module name: {}", module_name);
 
-    let module_type_index = Select::new()
+    let module_type_index = match Select::with_theme(&theme)
         .with_prompt("Type")
         .default(0)
-        .item("global")
-        .item("vendor")
-        .interact_opt()?;
+        .item(ModuleType::GLOBAL.to_string())
+        .item(ModuleType::VENDOR.to_string()) // TODO: replace with iterative
+        .interact_opt()?
+    {
+        Some(index) => index,
+        None => 0,
+    };
 
-    // let el = match module_type_index.unwrap() {
-    //     Ok(i) => FromPrimitive::from_usize(Ok(i)),
-    //     Err(err) => println!("Error: {}", err),
-    // }
+    let module_type = ModuleType::from_usize(module_type_index);
 
-    // let module_type: ModuleType = match module_type_index {
-    //     0 => ModuleType::GLOBAL,
-    //     1 => ModuleType::VENDOR,
-    //     _ => ModuleType::GLOBAL,
-    // };
-
-    let module_type = ModuleType::GLOBAL;
-
-    println!("Module type: {:?}", module_type);
+    let template_path = module_type.get_template_path();
 
     Ok(Some(ModuleConfig {
         name: module_name,
         module_type,
-        template_path: PathBuf::from_str("./main.rs")?,
+        template_path,
     }))
 }
 
@@ -90,8 +102,7 @@ fn main() {
     match args.action.as_str() {
         "new" => match args.sub_action.as_str() {
             "module" => {
-                println!("New Module.");
-                // let input: String = Input::new().with_prompt("Your name").interact_text()?;
+                println!("Create a new module.");
 
                 match prompt_module_config() {
                     Ok(config) => println!("Module user config: {:?}", config),
