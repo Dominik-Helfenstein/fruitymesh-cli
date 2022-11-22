@@ -7,7 +7,7 @@ use std::str::FromStr;
 use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 
-use serde::{Serialize, Deserialize};
+use serde::{Serialize};
 use serde_json::Result;
 
 extern crate num;
@@ -27,9 +27,10 @@ enum ModuleType {
     VENDOR = 1,
 }
 
-#[derive(Serialize, Deserialize)]
+// #[derive()]
 struct GlobalModuleTemplate {
     module_name: String,
+    module_description: String,
     vendor_id: u32,
     vendor_module_id: u32,
 }

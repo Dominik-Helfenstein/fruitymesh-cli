@@ -32,34 +32,34 @@
 
 #include <Module.h>
 
-constexpr VendorModuleId {{moduleName upper}}_MODULE_ID = GET_VENDOR_MODULE_ID({{vendorId}}, {{vendorModuleId}});
-constexpr u8 {{moduleName upper}}_MODULE_CONFIG_VERSION = 1;
+constexpr VendorModuleId {{module_name upper}}_MODULE_ID = GET_VENDOR_MODULE_ID({{vendor_id}}, {{vendor_module_id}});
+constexpr u8 {{module_name upper}}_MODULE_CONFIG_VERSION = 1;
 
 /*
- * {{moduleName}} module description:
- * {{moduleDescription}}
+ * {{module_name}} module description:
+ * {{module_description}}
  */
-class {{moduleName}Module: public Module
+class {{module_name}Module: public Module
 {
     private:
 
         //Module configuration that is saved persistently (size must be multiple of 4)
-        struct {{moduleName}}ModuleConfiguration : ModuleConfiguration{
+        struct {{module_name}}ModuleConfiguration : ModuleConfiguration{
             //Insert more persistent config values here
         };
 
-        {{moduleName}}ModuleConfiguration configuration;
+        {{module_name}}ModuleConfiguration configuration;
 
-        enum {{moduleName}}ModuleTriggerActionMessages{
-            TRIGGER_{{moduleName upper}}=0
+        enum {{module_name}}ModuleTriggerActionMessages{
+            TRIGGER_{{module_name upper}}=0
         };
 
-        enum {{moduleName}}ModuleActionResponseMessages{
-            {{moduleName upper}}_RESPONSE=0
+        enum {{module_name}}ModuleActionResponseMessages{
+            {{module_name upper}}_RESPONSE=0
         };
 
     public:
-        {{moduleName}}Module();
+        {{module_name}}Module();
 
         void ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength) override;
 
