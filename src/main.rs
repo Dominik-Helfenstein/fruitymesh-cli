@@ -1,14 +1,17 @@
 use core::fmt;
-use std::error::Error;
+use std::io::Read;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
+use std::{error::Error, fs::File};
 
 use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use handlebars::{to_json, Handlebars, Helper, Context, RenderContext, Output, HelperResult, JsonRender};
+use serde_json::Map;
 
-use serde::{Serialize};
-use serde_json::Result;
+// use serde::Serialize;
+// use serde_json::Result;
 
 extern crate num;
 #[macro_use]
@@ -46,9 +49,9 @@ impl ModuleType {
 
     fn get_template_path(&self) -> std::path::PathBuf {
         match *self {
-            Self::GLOBAL => std::path::PathBuf::from_str("templates/global.h")
+            Self::GLOBAL => std::path::PathBuf::from_str("templates/GlobalModule.h")
                 .expect("Path for global not found."),
-            Self::VENDOR => std::path::PathBuf::from_str("templates/vendor.h")
+            Self::VENDOR => std::path::PathBuf::from_str("templates/VendorModule.h")
                 .expect("Path for vendor not found."),
         }
     }
@@ -71,18 +74,9 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the setup wizard");
 
-    if !Confirm::with_theme(&theme)
-        .with_prompt("Do you want to continue?")
-        .interact()?
-    {
-        exit(1);
-    }
-
     let module_name: String = Input::with_theme(&theme)
         .with_prompt("Name")
         .interact_text()?;
-
-    println!("Module name: {}", module_name);
 
     let module_type_index = match Select::with_theme(&theme)
         .with_prompt("Type")
@@ -106,6 +100,47 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     }))
 }
 
+fn replace_file(module_config: ModuleConfig) {
+    let mut template_file: File =
+        File::open(module_config.template_path.as_path()).expect("Unable to open template file");
+    let mut file_buf = String::new();
+    template_file
+        .read_to_string(&mut file_buf)
+        .expect("Unable to read template file");
+
+    let mut handlebars = Handlebars::new();
+    handlebars.set_strict_mode(true);
+    handlebars.register_helper("upper", Box::new(upper_helper));
+    handlebars
+        .register_template_file(
+            &module_config.name[..],
+            module_config
+                .template_path
+                .to_str()
+                .expect("Could not convert template path to string"),
+        )
+        .expect("Unable to register template file");
+
+    let mut output_file =
+        File::create("templates/OutputGlobalModule.h").expect("Unable to create output file");
+
+    let mut data = Map::new();
+    data.insert("module_name".to_string(), to_json(&module_config.name[..]));
+    data.insert("module_description".to_string(), to_json("description"));
+    data.insert("vendor_id".to_string(), to_json("VeNdOr_Id"));
+    data.insert("vendor_module_id".to_string(), to_json("VeNdOr_MoDuLe_Id"));
+
+    handlebars
+        .render_to_write(&module_config.name[..], &data, &mut output_file)
+        .expect("Could not render output file");
+}
+
+fn upper_helper (h: &Helper, _: &Handlebars, _: &Context, rc: &mut RenderContext, out: &mut dyn Output) -> HelperResult {
+    let param = h.param(0).unwrap();
+    out.write(param.value().render().to_uppercase().as_str())?;
+    Ok(())
+}
+
 fn main() {
     let args = Args::parse();
     println!("{:?}", args);
@@ -116,7 +151,11 @@ fn main() {
                 println!("Create a new module.");
 
                 match prompt_module_config() {
-                    Ok(config) => println!("Module user config: {:?}", config),
+                    Ok(config) => {
+                        println!("Module user config: {:?}", config);
+                        let module_config = config.unwrap();
+                        replace_file(module_config);
+                    }
                     Err(err) => println!("Error getting module user config: {}", err),
                 }
             }

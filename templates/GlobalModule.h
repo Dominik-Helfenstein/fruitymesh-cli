@@ -32,14 +32,14 @@
 
 #include <Module.h>
 
-constexpr VendorModuleId {{module_name upper}}_MODULE_ID = GET_VENDOR_MODULE_ID({{vendor_id}}, {{vendor_module_id}});
-constexpr u8 {{module_name upper}}_MODULE_CONFIG_VERSION = 1;
+constexpr VendorModuleId {{upper module_name}}_MODULE_ID = GET_VENDOR_MODULE_ID({{vendor_id}}, {{vendor_module_id}});
+constexpr u8 {{upper module_name}}_MODULE_CONFIG_VERSION = 1;
 
 /*
  * {{module_name}} module description:
  * {{module_description}}
  */
-class {{module_name}Module: public Module
+class {{module_name}}Module: public Module
 {
     private:
 
@@ -51,11 +51,11 @@ class {{module_name}Module: public Module
         {{module_name}}ModuleConfiguration configuration;
 
         enum {{module_name}}ModuleTriggerActionMessages{
-            TRIGGER_{{module_name upper}}=0
+            TRIGGER_{{upper module_name}}=0
         };
 
         enum {{module_name}}ModuleActionResponseMessages{
-            {{module_name upper}}_RESPONSE=0
+            {{upper module_name}}_RESPONSE=0
         };
 
     public:
