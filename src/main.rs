@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::BTreeMap;
 use std::io::{Read, BufReader};
 use std::path::PathBuf;
 use std::process::exit;
@@ -9,6 +10,7 @@ use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use handlebars::{to_json, Handlebars, Helper, Context, RenderContext, Output, HelperResult, JsonRender};
 use serde_json::Map;
+use titlecase::titlecase;
 
 // use serde::Serialize;
 // use serde_json::Result;
@@ -24,18 +26,11 @@ struct Args {
     sub_action: String,
 }
 
+// TODO: get rid of this and walk through folder instead
 #[derive(Debug, FromPrimitive, ToPrimitive)]
 enum ModuleType {
     GLOBAL = 0,
     VENDOR = 1,
-}
-
-// #[derive()]
-struct GlobalModuleTemplate {
-    module_name: String,
-    module_description: String,
-    vendor_id: u32,
-    vendor_module_id: u32,
 }
 
 impl ModuleType {
@@ -65,9 +60,9 @@ impl fmt::Display for ModuleType {
 
 #[derive(Debug)]
 struct ModuleConfig {
-    name: String,
     module_type: ModuleType,
     template_path: PathBuf,
+    template_replacements: BTreeMap<String, String>,
 }
 
 fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
@@ -91,22 +86,26 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     let template_keys_file = File::open(template_keys_path)?;
     let reader = BufReader::new(template_keys_file);
     let template_keys: Vec<String> = serde_json::from_reader(reader)?;
-    println!("{:?}", template_keys);
 
-    let module_name: String = Input::with_theme(&theme)
-        .with_prompt("Name")
-        .interact_text()?;
+    let mut template_replacements: BTreeMap<String, String> = BTreeMap::new();
+    for key in template_keys {
+        let value: String = Input::with_theme(&theme)
+            .with_prompt(titlecase(key.replace("_", " ").as_str()))
+            .interact_text()?;
+        template_replacements.insert(key, value);
+    }
 
     Ok(Some(ModuleConfig {
-        name: module_name,
         module_type,
         template_path,
+        template_replacements,
     }))
 }
 
 fn replace_file(module_config: ModuleConfig) {
+    let template_path = format!("{}.h", module_config.template_path.to_str().expect("Could not convert template path to str"));
     let mut template_file: File =
-        File::open(module_config.template_path.as_path()).expect("Unable to open template file");
+        File::open(template_path).expect("Unable to open template file");
     let mut file_buf = String::new();
     template_file
         .read_to_string(&mut file_buf)
@@ -116,28 +115,23 @@ fn replace_file(module_config: ModuleConfig) {
     handlebars.set_strict_mode(true);
     handlebars.register_helper("upper", Box::new(upper_helper));
 
-    let header_str = format!("{}.h", module_config
+    let header_file_str = format!("{}.h", module_config
                 .template_path
                 .to_str()
                 .expect("Could not convert template path to string"));
+    const HEADER_TEMPLATE_NAME: &str = "header-template";
     handlebars
         .register_template_file(
-            &module_config.name[..],
-            header_str,
+            HEADER_TEMPLATE_NAME,
+            header_file_str,
         )
         .expect("Unable to register template file");
 
     let mut output_file =
-        File::create("templates/OutputGlobalModule.h").expect("Unable to create output file");
-
-    let mut data = Map::new();
-    data.insert("module_name".to_string(), to_json(&module_config.name[..]));
-    data.insert("module_description".to_string(), to_json("description"));
-    data.insert("vendor_id".to_string(), to_json("VeNdOr_Id"));
-    data.insert("vendor_module_id".to_string(), to_json("VeNdOr_MoDuLe_Id"));
+        File::create("templates/Output.h").expect("Unable to create output file");
 
     handlebars
-        .render_to_write(&module_config.name[..], &data, &mut output_file)
+        .render_to_write(HEADER_TEMPLATE_NAME, &module_config.template_replacements, &mut output_file)
         .expect("Could not render output file");
 }
 
@@ -149,7 +143,6 @@ fn upper_helper (h: &Helper, _: &Handlebars, _: &Context, rc: &mut RenderContext
 
 fn main() {
     let args = Args::parse();
-    println!("{:?}", args);
 
     match args.action.as_str() {
         "new" => match args.sub_action.as_str() {
