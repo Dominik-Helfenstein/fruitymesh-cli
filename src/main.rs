@@ -1,5 +1,5 @@
 use core::fmt;
-use std::io::Read;
+use std::io::{Read, BufReader};
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
@@ -49,9 +49,9 @@ impl ModuleType {
 
     fn get_template_path(&self) -> std::path::PathBuf {
         match *self {
-            Self::GLOBAL => std::path::PathBuf::from_str("templates/GlobalModule.h")
+            Self::GLOBAL => std::path::PathBuf::from_str("templates/GlobalModule")
                 .expect("Path for global not found."),
-            Self::VENDOR => std::path::PathBuf::from_str("templates/VendorModule.h")
+            Self::VENDOR => std::path::PathBuf::from_str("templates/VendorModule")
                 .expect("Path for vendor not found."),
         }
     }
@@ -74,10 +74,6 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the setup wizard");
 
-    let module_name: String = Input::with_theme(&theme)
-        .with_prompt("Name")
-        .interact_text()?;
-
     let module_type_index = match Select::with_theme(&theme)
         .with_prompt("Type")
         .default(0)
@@ -88,10 +84,18 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
         Some(index) => index,
         None => 0,
     };
-
     let module_type = ModuleType::from_usize(module_type_index);
-
     let template_path = module_type.get_template_path();
+
+    let template_keys_path = format!("{}.json", template_path.to_str().expect("unable to get str from template path"));
+    let template_keys_file = File::open(template_keys_path)?;
+    let reader = BufReader::new(template_keys_file);
+    let template_keys: Vec<String> = serde_json::from_reader(reader)?;
+    println!("{:?}", template_keys);
+
+    let module_name: String = Input::with_theme(&theme)
+        .with_prompt("Name")
+        .interact_text()?;
 
     Ok(Some(ModuleConfig {
         name: module_name,
@@ -111,13 +115,15 @@ fn replace_file(module_config: ModuleConfig) {
     let mut handlebars = Handlebars::new();
     handlebars.set_strict_mode(true);
     handlebars.register_helper("upper", Box::new(upper_helper));
+
+    let header_str = format!("{}.h", module_config
+                .template_path
+                .to_str()
+                .expect("Could not convert template path to string"));
     handlebars
         .register_template_file(
             &module_config.name[..],
-            module_config
-                .template_path
-                .to_str()
-                .expect("Could not convert template path to string"),
+            header_str,
         )
         .expect("Unable to register template file");
 
