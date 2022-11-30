@@ -1,5 +1,6 @@
 use core::fmt;
 use std::collections::BTreeMap;
+use std::fs;
 use std::io::{Read, BufReader};
 use std::path::PathBuf;
 use std::process::exit;
@@ -69,11 +70,13 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the setup wizard");
 
+    let module_types = read_module_types();
+    println!("If a module type is not listed here it is because one of the header, source or json files is missing.");
+
     let module_type_index = match Select::with_theme(&theme)
-        .with_prompt("Type")
+        .with_prompt("Module Type")
         .default(0)
-        .item(ModuleType::GLOBAL.to_string())
-        .item(ModuleType::VENDOR.to_string()) // TODO: replace with iterative
+        .items(&module_types[..])
         .interact_opt()?
     {
         Some(index) => index,
@@ -139,6 +142,69 @@ fn upper_helper (h: &Helper, _: &Handlebars, _: &Context, rc: &mut RenderContext
     let param = h.param(0).unwrap();
     out.write(param.value().render().to_uppercase().as_str())?;
     Ok(())
+}
+
+#[derive(Default, Debug)]
+struct ModuleTypeReading {
+    name: String,
+    has_json: bool,
+    has_header: bool,
+    has_source: bool,
+}
+
+fn read_module_types() -> Vec<String> {
+    let paths = fs::read_dir("./templates").expect("Could not read templates dir.");
+    let mut module_type_readings: Vec<ModuleTypeReading> = Vec::new();
+    for path in paths {
+        // TODO: just use regex
+        let filename = path.expect("Could not read filename.").path().display().to_string().replace("./templates/", "");
+        let name = filename.replace(".cpp", "").replace(".h", "").replace(".json", "").replace(".c", "").replace(".hpp", "");
+        let has_json = filename.contains(".json");
+        let has_header = filename.contains(".cpp") || filename.contains(".c");
+        let has_source = filename.contains(".h") || filename.contains(".hpp");
+        if let Some(current_module_type) = module_type_readings.iter_mut().filter(|m| m.name == name).next() {
+            if has_json {
+                current_module_type.has_json = true;
+            }
+            if has_header {
+                current_module_type.has_header = true;
+            }
+            if has_source {
+                current_module_type.has_source = true;
+            }
+
+        } else {
+            let mut current_module_type = ModuleTypeReading {
+                name,
+                ..Default::default()
+            };
+            if has_json {
+                current_module_type.has_json = true;
+            }
+            if has_header {
+                current_module_type.has_header = true;
+            }
+            if has_source {
+                current_module_type.has_source = true;
+            }
+            module_type_readings.push(current_module_type);
+        }
+    }
+    let module_types: Vec<String> = module_type_readings.iter().filter(|m| m.has_json && m.has_header && m.has_source).map(|m| {
+        // if !m.has_json {
+        //     panic!("{} does not have a json file! The json file must have an array of strings. Each string is one key that will be replaced in the template files.", m.name);
+        //     return;
+        // }
+        // if !m.has_header {
+        //     panic!("{} does not have a header file! Currently, header and source templates are necessary.", m.name);
+        // }
+        // if !m.has_source {
+        //     panic!("{} does not have a source file! Currently, header and source templates are necessary.", m.name);
+        // }
+        return m.name.clone();
+    }).collect();
+
+    module_types
 }
 
 fn main() {

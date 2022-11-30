@@ -32,34 +32,34 @@
 
 #include <Module.h>
 
-constexpr VendorModuleId DOMINIKSMODULE_MODULE_ID = GET_VENDOR_MODULE_ID(0x1234, 0x44);
-constexpr u8 DOMINIKSMODULE_MODULE_CONFIG_VERSION = 1;
+constexpr VendorModuleId TESTMODULE_MODULE_ID = GET_VENDOR_MODULE_ID(0x1234, 0x01);
+constexpr u8 TESTMODULE_MODULE_CONFIG_VERSION = 1;
 
 /*
- * DominiksModule module description:
- * This is my module. It is very nice and i like it.\nThis was a line break. Let&#x27;s see if it works!
+ * TestModule module description:
+ * Short description of the module
  */
-class DominiksModuleModule: public Module
+class TestModuleModule: public Module
 {
     private:
 
         //Module configuration that is saved persistently (size must be multiple of 4)
-        struct DominiksModuleModuleConfiguration : ModuleConfiguration{
+        struct TestModuleModuleConfiguration : ModuleConfiguration{
             //Insert more persistent config values here
         };
 
-        DominiksModuleModuleConfiguration configuration;
+        TestModuleModuleConfiguration configuration;
 
-        enum DominiksModuleModuleTriggerActionMessages{
-            TRIGGER_DOMINIKSMODULE=0
+        enum TestModuleModuleTriggerActionMessages{
+            TRIGGER_TESTMODULE=0
         };
 
-        enum DominiksModuleModuleActionResponseMessages{
-            DOMINIKSMODULE_RESPONSE=0
+        enum TestModuleModuleActionResponseMessages{
+            TESTMODULE_RESPONSE=0
         };
 
     public:
-        DominiksModuleModule();
+        TestModuleModule();
 
         void ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength) override;
 
