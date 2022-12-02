@@ -2,15 +2,13 @@ use core::fmt;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{Read, BufReader};
-use std::path::PathBuf;
-use std::process::exit;
+use std::path::{PathBuf, Path};
 use std::str::FromStr;
 use std::{error::Error, fs::File};
 
 use clap::Parser;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
-use handlebars::{to_json, Handlebars, Helper, Context, RenderContext, Output, HelperResult, JsonRender};
-use serde_json::Map;
+use dialoguer::{theme::ColorfulTheme, Input, Select};
+use handlebars::{Handlebars, Helper, Context, RenderContext, Output, HelperResult, JsonRender};
 use titlecase::titlecase;
 
 // use serde::Serialize;
@@ -27,41 +25,8 @@ struct Args {
     sub_action: String,
 }
 
-// TODO: get rid of this and walk through folder instead
-#[derive(Debug, FromPrimitive, ToPrimitive)]
-enum ModuleType {
-    GLOBAL = 0,
-    VENDOR = 1,
-}
-
-impl ModuleType {
-    fn from_usize(value: usize) -> Self {
-        match value {
-            0 => Self::GLOBAL,
-            1 => Self::VENDOR,
-            _ => Self::GLOBAL,
-        }
-    }
-
-    fn get_template_path(&self) -> std::path::PathBuf {
-        match *self {
-            Self::GLOBAL => std::path::PathBuf::from_str("templates/GlobalModule")
-                .expect("Path for global not found."),
-            Self::VENDOR => std::path::PathBuf::from_str("templates/VendorModule")
-                .expect("Path for vendor not found."),
-        }
-    }
-}
-
-impl fmt::Display for ModuleType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 #[derive(Debug)]
 struct ModuleConfig {
-    module_type: ModuleType,
     template_path: PathBuf,
     template_replacements: BTreeMap<String, String>,
 }
@@ -82,8 +47,8 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
         Some(index) => index,
         None => 0,
     };
-    let module_type = ModuleType::from_usize(module_type_index);
-    let template_path = module_type.get_template_path();
+    let module_type = module_types[module_type_index].clone();
+    let template_path = PathBuf::from_str(format!("templates/{module_type}").as_str()).unwrap();
 
     let template_keys_path = format!("{}.json", template_path.to_str().expect("unable to get str from template path"));
     let template_keys_file = File::open(template_keys_path)?;
@@ -99,43 +64,48 @@ fn prompt_module_config() -> Result<Option<ModuleConfig>, Box<dyn Error>> {
     }
 
     Ok(Some(ModuleConfig {
-        module_type,
         template_path,
         template_replacements,
     }))
 }
 
-fn replace_file(module_config: ModuleConfig) {
-    let template_path = format!("{}.h", module_config.template_path.to_str().expect("Could not convert template path to str"));
-    let mut template_file: File =
-        File::open(template_path).expect("Unable to open template file");
-    let mut file_buf = String::new();
-    template_file
-        .read_to_string(&mut file_buf)
-        .expect("Unable to read template file");
+fn replace_files(module_config: ModuleConfig) {
+    let header_path = format!("{}.h", module_config.template_path.to_str().expect("Could not convert template path to header string"));
+    let source_path = format!("{}.cpp", module_config.template_path.to_str().expect("Could not convert template path to source string"));
 
     let mut handlebars = Handlebars::new();
     handlebars.set_strict_mode(true);
     handlebars.register_helper("upper", Box::new(upper_helper));
 
-    let header_file_str = format!("{}.h", module_config
-                .template_path
-                .to_str()
-                .expect("Could not convert template path to string"));
     const HEADER_TEMPLATE_NAME: &str = "header-template";
+    const SOURCE_TEMPLATE_NAME: &str = "source-template";
     handlebars
         .register_template_file(
             HEADER_TEMPLATE_NAME,
-            header_file_str,
+            &header_path,
         )
-        .expect("Unable to register template file");
+        .expect("Unable to register header template file");
+    handlebars
+        .register_template_file(
+            SOURCE_TEMPLATE_NAME,
+            &source_path,
+        )
+        .expect("Unable to register source template file");
 
-    let mut output_file =
-        File::create("templates/Output.h").expect("Unable to create output file");
+    let module_file_name = module_config.template_path.to_str().expect("Could not convert template path to str")
+                            .split("/").last().expect("Could not find last element in path that has been split with '/'. Maybe there was no '/' in the path?");
+
+    let mut header_output_file =
+        File::create(format!("output/{module_file_name}.h")).expect("Unable to create output header file");
+    let mut source_output_file =
+        File::create(format!("output/{module_file_name}.cpp")).expect("Unable to create output source file");
 
     handlebars
-        .render_to_write(HEADER_TEMPLATE_NAME, &module_config.template_replacements, &mut output_file)
-        .expect("Could not render output file");
+        .render_to_write(HEADER_TEMPLATE_NAME, &module_config.template_replacements, &mut header_output_file)
+        .expect("Could not render output header file");
+    handlebars
+        .render_to_write(SOURCE_TEMPLATE_NAME, &module_config.template_replacements, &mut source_output_file)
+        .expect("Could not render output source file");
 }
 
 fn upper_helper (h: &Helper, _: &Handlebars, _: &Context, rc: &mut RenderContext, out: &mut dyn Output) -> HelperResult {
@@ -191,16 +161,6 @@ fn read_module_types() -> Vec<String> {
         }
     }
     let module_types: Vec<String> = module_type_readings.iter().filter(|m| m.has_json && m.has_header && m.has_source).map(|m| {
-        // if !m.has_json {
-        //     panic!("{} does not have a json file! The json file must have an array of strings. Each string is one key that will be replaced in the template files.", m.name);
-        //     return;
-        // }
-        // if !m.has_header {
-        //     panic!("{} does not have a header file! Currently, header and source templates are necessary.", m.name);
-        // }
-        // if !m.has_source {
-        //     panic!("{} does not have a source file! Currently, header and source templates are necessary.", m.name);
-        // }
         return m.name.clone();
     }).collect();
 
@@ -219,7 +179,7 @@ fn main() {
                     Ok(config) => {
                         println!("Module user config: {:?}", config);
                         let module_config = config.unwrap();
-                        replace_file(module_config);
+                        replace_files(module_config);
                     }
                     Err(err) => println!("Error getting module user config: {}", err),
                 }

@@ -31,35 +31,36 @@
 #include <Logger.h>
 #include <Utility.h>
 #include <Node.h>
-#include <PingModule.h>
+#include <{{module_name}}Module.h>
 #include <stdlib.h>
 
-PingModule::PingModule()
-    : Module(PING_MODULE_ID, "ping")
+// For module description check the header file
+{{module_name}}Module::{{module_name}}Module()
+    : Module({{upper module_name}}MODULE_ID, "{{module_name}}")
 {
     //Register callbacks n' stuff
 
     //Save configuration to base class variables
     //sizeof configuration must be a multiple of 4 bytes
     configurationPointer = &configuration;
-    configurationLength = sizeof(PingModuleConfiguration);
+    configurationLength = sizeof({{module_name}}ModuleConfiguration);
 
     //Set defaults
     ResetToDefaultConfiguration();
 }
 
-void PingModule::ResetToDefaultConfiguration()
+void {{module_name}}Module::ResetToDefaultConfiguration()
 {
     //Set default configuration values
     configuration.moduleId = moduleId;
     configuration.moduleActive = true;
-    configuration.moduleVersion = PING_MODULE_CONFIG_VERSION;
+    configuration.moduleVersion = {{upper module_name}}MODULE_CONFIG_VERSION;
 
     //Set additional config values...
 
 }
 
-void PingModule::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
+void {{module_name}}Module::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
 {
     //Do additional initialization upon loading the config
 
@@ -68,20 +69,20 @@ void PingModule::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratable
 
 }
 
-void PingModule::TimerEventHandler(u16 passedTimeDs)
+void {{module_name}}Module::TimerEventHandler(u16 passedTimeDs)
 {
     //Do stuff on timer...
 
 }
 
 #ifdef TERMINAL_ENABLED
-TerminalCommandHandlerReturnType PingModule::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
+TerminalCommandHandlerReturnType {{module_name}}Module::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
 {
     //React on commands, return true if handled, false otherwise
-    if(TERMARGS(0, "pingmod")){
+    if(TERMARGS(0, "{{upper module_name}}mod")){
         //Get the id of the target node
         NodeId targetNodeId = Utility::StringToU16(commandArgs[1]);
-        logt("PINGMOD", "Trying to ping node %u", targetNodeId);
+        logt("{{upper module_name}}MOD", "Trying to ping node %u", targetNodeId);
 
         //Some data
         u8 data[1];
@@ -91,7 +92,7 @@ TerminalCommandHandlerReturnType PingModule::TerminalCommandHandler(const char* 
         SendModuleActionMessage(
                 MessageType::MODULE_TRIGGER_ACTION,
                 targetNodeId,
-                PingModuleTriggerActionMessages::TRIGGER_PING,
+                {{module_name}}ModuleTriggerActionMessages::TRIGGER_{{upper module_name}},
                 0,
                 data,
                 1, //size of payload
@@ -106,7 +107,7 @@ TerminalCommandHandlerReturnType PingModule::TerminalCommandHandler(const char* 
 }
 #endif
 
-void PingModule::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
+void {{module_name}}Module::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
 {
     //Must call superclass for handling
     Module::MeshMessageReceivedHandler(connection, sendData, packetHeader);
@@ -118,10 +119,10 @@ void PingModule::MeshMessageReceivedHandler(BaseConnection* connection, BaseConn
         //Check if our module is meant and we should trigger an action
         if(packet->moduleId == vendorModuleId && sendData->dataLength >= SIZEOF_CONN_PACKET_MODULE_VENDOR){
             //It's a ping message
-            if(packet->actionType == PingModuleTriggerActionMessages::TRIGGER_PING){
+            if(packet->actionType == {{module_name}}ModuleTriggerActionMessages::TRIGGER_{{upper module_name}}){
 
                 //Inform the user
-                logt("PINGMOD", "Ping request received with data: %d", packet->data[0]);
+                logt("{{upper module_name}}MOD", "{{module_name}} request received with data: %d", packet->data[0]);
 
                 u8 data[2];
                 data[0] = packet->data[0];
@@ -131,7 +132,7 @@ void PingModule::MeshMessageReceivedHandler(BaseConnection* connection, BaseConn
                 SendModuleActionMessage(
                         MessageType::MODULE_ACTION_RESPONSE,
                         packetHeader->sender,
-                        PingModuleActionResponseMessages::PING_RESPONSE,
+                        {{module_name}}ModuleActionResponseMessages::{{upper module_name}}RESPONSE,
                         0,
                         data,
                         2,
@@ -150,8 +151,8 @@ void PingModule::MeshMessageReceivedHandler(BaseConnection* connection, BaseConn
         if(packet->moduleId == vendorModuleId)
         {
             //Somebody reported its connections back
-            if(packet->actionType == PingModuleActionResponseMessages::PING_RESPONSE){
-                logt("PINGMOD", "Ping came back from %u with data %d, %d", packet->header.sender, packet->data[0], packet->data[1]);
+            if(packet->actionType == {{module_name}}ModuleActionResponseMessages::{{upper module_name}}RESPONSE){
+                logt("{{upper module_name}}MOD", "{{module_name}} came back from %u with data %d, %d", packet->header.sender, packet->data[0], packet->data[1]);
             }
         }
     }
