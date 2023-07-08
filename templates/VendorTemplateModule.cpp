@@ -28,9 +28,9 @@
 // ****************************************************************************/
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <VendorTemplateModule.h>
+#include <{{module_name}}.h>
 
-#if IS_ACTIVE(VENDOR_TEMPLATE_MODULE)
+#if IS_ACTIVE({{upper module_name}})
 
 #include <GlobalState.h>
 #include <Logger.h>
@@ -38,8 +38,8 @@
 #include <Node.h>
 #include <IoModule.h>
 
-VendorTemplateModule::VendorTemplateModule()
-    : Module(VENDOR_TEMPLATE_MODULE_ID, "template")
+{{module_name}}::{{module_name}}()
+    : Module({{upper module_name}}_ID, "template")
 {
     //Register callbacks n' stuff
 
@@ -49,18 +49,18 @@ VendorTemplateModule::VendorTemplateModule()
     //Save configuration to base class variables
     //sizeof configuration must be a multiple of 4 bytes
     vendorConfigurationPointer = &configuration;
-    configurationLength = sizeof(VendorTemplateModuleConfiguration);
+    configurationLength = sizeof({{module_name}}Configuration);
 
     //Set defaults
     ResetToDefaultConfiguration();
 }
 
-void VendorTemplateModule::ResetToDefaultConfiguration()
+void {{module_name}}::ResetToDefaultConfiguration()
 {
     //Set default configuration values
     configuration.moduleId = vendorModuleId;
     configuration.moduleActive = true;
-    configuration.moduleVersion = VENDOR_TEMPLATE_MODULE_CONFIG_VERSION;
+    configuration.moduleVersion = {{upper module_name}}_CONFIG_VERSION;
 
     //Set additional config values...
 
@@ -68,7 +68,7 @@ void VendorTemplateModule::ResetToDefaultConfiguration()
     SET_FEATURESET_CONFIGURATION_VENDOR(&configuration, this);
 }
 
-void VendorTemplateModule::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
+void {{module_name}}::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
 {
     VendorModuleConfiguration* newConfig = (VendorModuleConfiguration*)migratableConfig;
 
@@ -101,7 +101,7 @@ enum class VendorTemplateComponent1Registers : u16
     EXAMPLE_LED = 0x02,
 };
 
-void VendorTemplateModule::TimerEventHandler(u16 passedTimeDs)
+void {{module_name}}::TimerEventHandler(u16 passedTimeDs)
 {
     static u8 exampleCounter = 0;
 
@@ -116,7 +116,7 @@ void VendorTemplateModule::TimerEventHandler(u16 passedTimeDs)
         //Use NODE_ID_SHORTEST_SINK if other Mesh Nodes do not need to reveice the message
         //Sending the event to NODE_ID_BROADCAST is less common in production setups
         message->componentHeader.header.receiver = NODE_ID_BROADCAST;
-        message->componentHeader.moduleId = VENDOR_TEMPLATE_MODULE_ID;
+        message->componentHeader.moduleId = {{upper module_name}}_ID;
         //UNSPECIFIED is used to report events whereas e.g. READ_RSP is used to report the result of a read request
         message->componentHeader.actionType = (u8)SensorMessageActionType::UNSPECIFIED;
         message->componentHeader.component = (u16)VendorTemplateComponents::EXAMPLE_COMPONENT_1;
@@ -135,7 +135,7 @@ void VendorTemplateModule::TimerEventHandler(u16 passedTimeDs)
 }
 
 #ifdef TERMINAL_ENABLED
-TerminalCommandHandlerReturnType VendorTemplateModule::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
+TerminalCommandHandlerReturnType {{module_name}}::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
 {
     //React on commands, return true if handled, false otherwise
     if(commandArgsSize >= 3 && TERMARGS(2, moduleName))
@@ -148,17 +148,17 @@ TerminalCommandHandlerReturnType VendorTemplateModule::TerminalCommandHandler(co
             {
                 logt("TMOD", "Command one executed");
 
-                VendorTemplateModuleCommandOneMessage data;
+                {{module_name}}CommandOneMessage data;
                 data.exampleValue = Utility::StringToU8(commandArgs[4]);
 
                 //PART 1 of sending a message: Some command is entered and a request message is sent
                 SendModuleActionMessage(
                     MessageType::MODULE_TRIGGER_ACTION,
                     NODE_ID_BROADCAST,
-                    (u8)VendorTemplateModuleTriggerActionMessages::COMMAND_ONE_MESSAGE,
+                    (u8){{module_name}}TriggerActionMessages::COMMAND_ONE_MESSAGE,
                     0,
                     (u8*)&data,
-                    SIZEOF_VENDOR_TEMPLATE_MODULE_COMMAND_ONE_MESSAGE,
+                    SIZEOF_{{upper module_name}}_COMMAND_ONE_MESSAGE,
                     true
                 );
 
@@ -171,7 +171,7 @@ TerminalCommandHandlerReturnType VendorTemplateModule::TerminalCommandHandler(co
                 SendModuleActionMessage(
                     MessageType::MODULE_TRIGGER_ACTION,
                     NODE_ID_BROADCAST,
-                    (u8)VendorTemplateModuleTriggerActionMessages::COMMAND_TWO_MESSAGE,
+                    (u8){{module_name}}TriggerActionMessages::COMMAND_TWO_MESSAGE,
                     0,
                     nullptr,
                     0,
@@ -193,7 +193,7 @@ TerminalCommandHandlerReturnType VendorTemplateModule::TerminalCommandHandler(co
 #endif
 
 
-void VendorTemplateModule::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
+void {{module_name}}::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
 {
     //Must call superclass for handling
     Module::MeshMessageReceivedHandler(connection, sendData, packetHeader);
@@ -204,13 +204,13 @@ void VendorTemplateModule::MeshMessageReceivedHandler(BaseConnection* connection
 
         //Check if our module is meant and we should trigger an action
         if (packet->moduleId == vendorModuleId) {
-            if (packet->actionType == VendorTemplateModuleTriggerActionMessages::COMMAND_ONE_MESSAGE)
+            if (packet->actionType == {{module_name}}TriggerActionMessages::COMMAND_ONE_MESSAGE)
             {
-                const VendorTemplateModuleCommandOneMessage* data = (const VendorTemplateModuleCommandOneMessage*)packet->data;
+                const {{module_name}}CommandOneMessage* data = (const {{module_name}}CommandOneMessage*)packet->data;
 
                 logt("TMOD", "Got command one message with %u", data->exampleValue);
             }
-            else if (packet->actionType == VendorTemplateModuleTriggerActionMessages::COMMAND_TWO_MESSAGE)
+            else if (packet->actionType == {{module_name}}TriggerActionMessages::COMMAND_TWO_MESSAGE)
             {
                 logt("TMOD", "Got command two message");
             }
@@ -224,7 +224,7 @@ void VendorTemplateModule::MeshMessageReceivedHandler(BaseConnection* connection
         //Check if our module is meant and we should trigger an action
         if (packet->moduleId == vendorModuleId)
         {
-            if (packet->actionType == VendorTemplateModuleActionResponseMessages::COMMAND_ONE_MESSAGE_RESPONSE)
+            if (packet->actionType == {{module_name}}ActionResponseMessages::COMMAND_ONE_MESSAGE_RESPONSE)
             {
 
             }
@@ -268,7 +268,7 @@ void VendorTemplateModule::MeshMessageReceivedHandler(BaseConnection* connection
                     message->componentHeader.header.sender = GS->node.configuration.nodeId;
                     //Answer the sender of this message
                     message->componentHeader.header.receiver = packetHeader->sender;
-                    message->componentHeader.moduleId = VENDOR_TEMPLATE_MODULE_ID;
+                    message->componentHeader.moduleId = {{upper module_name}}_ID;
                     //Use a WRITE_RSP to answer a WRITE_ACK
                     message->componentHeader.actionType = (u8)SensorMessageActionType::WRITE_RSP;
                     message->componentHeader.component = (u16)VendorTemplateComponents::EXAMPLE_COMPONENT_1;
@@ -288,7 +288,7 @@ void VendorTemplateModule::MeshMessageReceivedHandler(BaseConnection* connection
     }
 }
 
-CapabilityEntry VendorTemplateModule::GetCapability(u32 index, bool firstCall)
+CapabilityEntry {{module_name}}::GetCapability(u32 index, bool firstCall)
 {
     if (index == 0) 
     {
@@ -307,4 +307,4 @@ CapabilityEntry VendorTemplateModule::GetCapability(u32 index, bool firstCall)
     }
 }
 
-#endif //IS_ACTIVE(VENDOR_TEMPLATE_MODULE)
+#endif //IS_ACTIVE({{upper module_name}})

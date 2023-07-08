@@ -33,36 +33,36 @@
 #include <Module.h>
 
 //This should be set to the correct vendor and subId
-constexpr VendorModuleId VENDOR_TEMPLATE_MODULE_ID = GET_VENDOR_MODULE_ID(0xABCD, 1);
+constexpr VendorModuleId {{upper module_name}}_ID = GET_VENDOR_MODULE_ID({{vendor_id}}, {{vendor_module_id}});
 
-#if IS_ACTIVE(VENDOR_TEMPLATE_MODULE)
+#if IS_ACTIVE({{upper module_name}})
 
 /*
  * This is a template for a FruityMesh module.
  * A comment should be here to provide a least a short description of its purpose.
  */
 
-constexpr u8 VENDOR_TEMPLATE_MODULE_CONFIG_VERSION = 1;
+constexpr u8 {{upper module_name}}_CONFIG_VERSION = 1;
 
 #pragma pack(push)
 #pragma pack(1)
 //Module configuration that is saved persistently (size must be multiple of 4)
-struct VendorTemplateModuleConfiguration : VendorModuleConfiguration {
+struct {{module_name}}Configuration : VendorModuleConfiguration {
     //Insert more persistent config values here
     u8 exampleValue;
 };
 #pragma pack(pop)
 
-class VendorTemplateModule : public Module
+class {{module_name}} : public Module
 {
 public:
 
-    enum VendorTemplateModuleTriggerActionMessages {
+    enum {{module_name}}TriggerActionMessages {
         COMMAND_ONE_MESSAGE = 0,
         COMMAND_TWO_MESSAGE = 1,
     };
 
-    enum VendorTemplateModuleActionResponseMessages {
+    enum {{module_name}}ActionResponseMessages {
         COMMAND_ONE_MESSAGE_RESPONSE = 0,
         COMMAND_TWO_MESSAGE_RESPONSE = 1,
     };
@@ -71,22 +71,22 @@ public:
 #pragma pack(push)
 #pragma pack(1)
 
-    static constexpr int SIZEOF_VENDOR_TEMPLATE_MODULE_COMMAND_ONE_MESSAGE = 1;
+    static constexpr int SIZEOF_{{upper module_name}}_COMMAND_ONE_MESSAGE = 1;
     typedef struct
     {
         //Insert values here
         u8 exampleValue;
 
-    } VendorTemplateModuleCommandOneMessage;
-    STATIC_ASSERT_SIZE(VendorTemplateModuleCommandOneMessage, SIZEOF_VENDOR_TEMPLATE_MODULE_COMMAND_ONE_MESSAGE);
+    } {{module_name}}CommandOneMessage;
+    STATIC_ASSERT_SIZE({{module_name}}CommandOneMessage, SIZEOF_{{upper module_name}}_COMMAND_ONE_MESSAGE);
     
 #pragma pack(pop)
     //####### Module messages end
 
     //Declare the configuration used for this module
-    DECLARE_CONFIG_AND_PACKED_STRUCT(VendorTemplateModuleConfiguration);
+    DECLARE_CONFIG_AND_PACKED_STRUCT({{module_name}}Configuration);
 
-    VendorTemplateModule();
+    {{module_name}}();
 
     void ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength) override;
 
@@ -103,4 +103,4 @@ public:
     CapabilityEntry GetCapability(u32 index, bool firstCall) override;
 };
 
-#endif //IS_ACTIVE(VENDOR_TEMPLATE_MODULE)
+#endif //IS_ACTIVE({{upper module_name}})
