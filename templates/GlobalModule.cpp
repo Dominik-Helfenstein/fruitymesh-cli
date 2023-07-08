@@ -31,11 +31,11 @@
 #include <Logger.h>
 #include <Utility.h>
 #include <Node.h>
-#include <{{module_name}}Module.h>
+#include <{{module_name}}.h>
 #include <stdlib.h>
 
 // For module description check the header file
-{{module_name}}Module::{{module_name}}Module()
+{{module_name}}::{{module_name}}()
     : Module({{upper module_name}}MODULE_ID, "{{module_name}}")
 {
     //Register callbacks n' stuff
@@ -43,13 +43,13 @@
     //Save configuration to base class variables
     //sizeof configuration must be a multiple of 4 bytes
     configurationPointer = &configuration;
-    configurationLength = sizeof({{module_name}}ModuleConfiguration);
+    configurationLength = sizeof({{module_name}}Configuration);
 
     //Set defaults
     ResetToDefaultConfiguration();
 }
 
-void {{module_name}}Module::ResetToDefaultConfiguration()
+void {{module_name}}::ResetToDefaultConfiguration()
 {
     //Set default configuration values
     configuration.moduleId = moduleId;
@@ -60,7 +60,7 @@ void {{module_name}}Module::ResetToDefaultConfiguration()
 
 }
 
-void {{module_name}}Module::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
+void {{module_name}}::ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength)
 {
     //Do additional initialization upon loading the config
 
@@ -69,14 +69,14 @@ void {{module_name}}Module::ConfigurationLoadedHandler(u8* migratableConfig, u16
 
 }
 
-void {{module_name}}Module::TimerEventHandler(u16 passedTimeDs)
+void {{module_name}}::TimerEventHandler(u16 passedTimeDs)
 {
     //Do stuff on timer...
 
 }
 
 #ifdef TERMINAL_ENABLED
-TerminalCommandHandlerReturnType {{module_name}}Module::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
+TerminalCommandHandlerReturnType {{module_name}}::TerminalCommandHandler(const char* commandArgs[], u8 commandArgsSize)
 {
     //React on commands, return true if handled, false otherwise
     if(TERMARGS(0, "{{upper module_name}}mod")){
@@ -92,7 +92,7 @@ TerminalCommandHandlerReturnType {{module_name}}Module::TerminalCommandHandler(c
         SendModuleActionMessage(
                 MessageType::MODULE_TRIGGER_ACTION,
                 targetNodeId,
-                {{module_name}}ModuleTriggerActionMessages::TRIGGER_{{upper module_name}},
+                {{module_name}}TriggerActionMessages::TRIGGER_{{upper module_name}},
                 0,
                 data,
                 1, //size of payload
@@ -107,7 +107,7 @@ TerminalCommandHandlerReturnType {{module_name}}Module::TerminalCommandHandler(c
 }
 #endif
 
-void {{module_name}}Module::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
+void {{module_name}}::MeshMessageReceivedHandler(BaseConnection* connection, BaseConnectionSendData* sendData, ConnPacketHeader const * packetHeader)
 {
     //Must call superclass for handling
     Module::MeshMessageReceivedHandler(connection, sendData, packetHeader);
@@ -119,7 +119,7 @@ void {{module_name}}Module::MeshMessageReceivedHandler(BaseConnection* connectio
         //Check if our module is meant and we should trigger an action
         if(packet->moduleId == vendorModuleId && sendData->dataLength >= SIZEOF_CONN_PACKET_MODULE_VENDOR){
             //It's a ping message
-            if(packet->actionType == {{module_name}}ModuleTriggerActionMessages::TRIGGER_{{upper module_name}}){
+            if(packet->actionType == {{module_name}}TriggerActionMessages::TRIGGER_{{upper module_name}}){
 
                 //Inform the user
                 logt("{{upper module_name}}MOD", "{{module_name}} request received with data: %d", packet->data[0]);
@@ -132,7 +132,7 @@ void {{module_name}}Module::MeshMessageReceivedHandler(BaseConnection* connectio
                 SendModuleActionMessage(
                         MessageType::MODULE_ACTION_RESPONSE,
                         packetHeader->sender,
-                        {{module_name}}ModuleActionResponseMessages::{{upper module_name}}RESPONSE,
+                        {{module_name}}ActionResponseMessages::{{upper module_name}}RESPONSE,
                         0,
                         data,
                         2,
@@ -151,7 +151,7 @@ void {{module_name}}Module::MeshMessageReceivedHandler(BaseConnection* connectio
         if(packet->moduleId == vendorModuleId)
         {
             //Somebody reported its connections back
-            if(packet->actionType == {{module_name}}ModuleActionResponseMessages::{{upper module_name}}RESPONSE){
+            if(packet->actionType == {{module_name}}ActionResponseMessages::{{upper module_name}}RESPONSE){
                 logt("{{upper module_name}}MOD", "{{module_name}} came back from %u with data %d, %d", packet->header.sender, packet->data[0], packet->data[1]);
             }
         }

@@ -39,27 +39,27 @@ constexpr u8 {{upper module_name}}_MODULE_CONFIG_VERSION = 1;
  * {{module_name}} module description:
  * {{module_description}}
  */
-class {{module_name}}Module: public Module
+class {{module_name}}: public Module
 {
     private:
 
         //Module configuration that is saved persistently (size must be multiple of 4)
-        struct {{module_name}}ModuleConfiguration : ModuleConfiguration{
+        struct {{module_name}}Configuration : ModuleConfiguration{
             //Insert more persistent config values here
         };
 
-        {{module_name}}ModuleConfiguration configuration;
+        {{module_name}}Configuration configuration;
 
-        enum {{module_name}}ModuleTriggerActionMessages{
+        enum {{module_name}}TriggerActionMessages{
             TRIGGER_{{upper module_name}}=0
         };
 
-        enum {{module_name}}ModuleActionResponseMessages{
+        enum {{module_name}}ActionResponseMessages{
             {{upper module_name}}_RESPONSE=0
         };
 
     public:
-        {{module_name}}Module();
+        {{module_name}}();
 
         void ConfigurationLoadedHandler(u8* migratableConfig, u16 migratableConfigLength) override;
 
